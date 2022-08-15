@@ -63,3 +63,19 @@ extern "C" __declspec(dllexport) const char *returnDateTime(const char *__args__
     }
     VARIANT_RET_RESULT();
 }
+
+typedef void (*cb)(int x);
+
+extern "C" __declspec(dllexport) const char *cbTest(const char *__args__)
+{
+    VARIANT_GET_ARGS();
+    {
+        qDebug() << "cbTest()" << args;
+        cb p = (cb)args.toULongLong();
+        p(1234);
+        p(-7777);
+        //result = args;
+        qDebug() << result;
+    }
+    VARIANT_RET_RESULT();
+}
