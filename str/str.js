@@ -2,7 +2,7 @@
 // ffi.ts
 
 //import { encode, decode } from "https://deno.land/x/cbor@v1.5.0/index.js";
-import { encode, decode } from "https://deno.land/x/cbor/index.js";
+import { encode, decode } from "https://deno.land/x/cbor@v1.3.3/index.js";
 
 function arrayBufferToBase64( buffer ) {
     var binary = '';
