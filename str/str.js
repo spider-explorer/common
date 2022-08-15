@@ -14,5 +14,9 @@ const libPath = `${targetDir}/${libPrefix}dll-x86_64-static.${libSuffix}`;
 
 console.log(libPath);
 
-let mylib = new CborLibrary(libPath, ["add2"]);
+let mylib = new CborLibrary(libPath, ["add2", "returnArgs", "returnDateTime"]);
 console.dir(mylib.call("add2", [111, 222]));
+console.dir(mylib.call("returnDateTime", undefined));
+console.log(typeof mylib.call("returnDateTime", undefined));
+console.log(mylib.call("returnDateTime", undefined).getFullYear());
+console.log(mylib.call("returnArgs", new Date()));

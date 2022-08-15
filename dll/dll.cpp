@@ -52,3 +52,14 @@ extern "C" __declspec(dllexport) const char *returnArgs(const char *__args__)
     }
     VARIANT_RET_RESULT();
 }
+
+extern "C" __declspec(dllexport) const char *returnDateTime(const char *__args__)
+{
+    VARIANT_GET_ARGS();
+    {
+        qDebug() << "returnDateTime()" << args;
+        result = QDateTime::currentDateTime();
+        qDebug() << result;
+    }
+    VARIANT_RET_RESULT();
+}
