@@ -22,5 +22,7 @@ int main(int argc, char *argv[])
         qDebug() << lib2.call("add2", QVariantList() << 44 << 55);
     }
     qDebug() << lib.call("returnArgs", QVariantList {1, 2, QDateTime::currentDateTime(), QVariant()});
+    std::string s;
+    std::cout << s.max_size() << std::endl;
     return 0; // return app.exec();
 }
