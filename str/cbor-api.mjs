@@ -80,10 +80,13 @@ export class CborCallback {
                 return that.__result__;
             },
         );
+        that.pointer = String(that.callback.pointer);
     }
+    /*
     pointer() {
         return String(this.callback.pointer);
     }
+    */
     close() {
         this.callback.close();
     }
