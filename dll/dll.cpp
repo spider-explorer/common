@@ -79,3 +79,25 @@ extern "C" __declspec(dllexport) const char *cbTest(const char *__args__)
     }
     VARIANT_RET_RESULT();
 }
+
+static QVariant VARIANT_RUN_CALLBACK(const QVariant &callback, const QVariant &args)
+{
+    ProtoVariantCallback f = (ProtoVariantCallback)callback.toULongLong();
+    std::string __args__ = VariantSerializer().serializeToStdString(args);
+    std::string __result__ = f(__args__.c_str());
+    return VariantSerializer().deserializeFromStdString(__result__);
+}
+
+extern "C" __declspec(dllexport) const char *cbTest2(const char *__args__)
+{
+    VARIANT_GET_ARGS();
+    {
+        qDebug() << "cbTest2()" << args;
+        QVariantList list = args.toList();
+        QVariant cb = list[0];
+        QVariant n = list[1];
+        /*result =*/ VARIANT_RUN_CALLBACK(cb, n);
+        qDebug() << result;
+    }
+    VARIANT_RET_RESULT();
+}

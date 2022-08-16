@@ -69,6 +69,8 @@ protected:
     HMEMORYMODULE m_memory = nullptr;
 };
 
+typedef const char *(*ProtoVariantCallback)(const char *__args__);
+
 #define VARIANT_GET_ARGS() QVariant args = VariantSerializer().deserializeFromStdString(__args__); \
                            QVariant result;
 #define VARIANT_RET_RESULT() static thread_local std::string __result__; \
