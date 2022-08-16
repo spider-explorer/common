@@ -1,7 +1,7 @@
 // https://deno.land/manual@main/runtime/ffi_api
 // ffi.ts
 
-import { CborLibrary } from "./cbor-api.mjs";
+import { CborLibrary, CborCallback, VARIANT_GET_ARGS } from "./cbor-api.mjs";
 
 const callback = new Deno.UnsafeCallback(
   {
@@ -13,16 +13,19 @@ const callback = new Deno.UnsafeCallback(
   },
 );
 
-const callback2 = new Deno.UnsafeCallback(
+let callback2 = new Deno.UnsafeCallback(
   {
     parameters: ["pointer"],
     result: "pointer",
   },
   (__args__) => {
     //console.log(`__args__: ${__args__}`);
-    const argsView = new Deno.UnsafePointerView(__args__);
-    console.log(argsView.getCString());
-    return __args__;
+    //const argsView = new Deno.UnsafePointerView(__args__);
+    //console.log(argsView.getCString());
+    let args = VARIANT_GET_ARGS(__args__);
+    console.log(args);
+    callback2.__result__ = __args__;
+    return callback2.__result__;
   },
 );
 
@@ -52,4 +55,7 @@ const max = 18446744073709551615n;
 console.log(mylib.call("returnArgs", String(max)));
 console.log(mylib.call("cbTest", String(callback.pointer)));
 console.log(mylib.call("cbTest2", [String(callback2.pointer), 8888]));
+
+let cb3 = new CborCallback(function(args) {console.log("(B):"+args)});
+console.log(mylib.call("cbTest2", [String(cb3.pointer()), 7777]));
 

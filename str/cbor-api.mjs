@@ -1,5 +1,16 @@
 import { encode, decode } from "https://deno.land/x/cbor@v1.3.3/index.js";
 
+export function VARIANT_GET_ARGS(__args__) {
+    const argsView = new Deno.UnsafePointerView(__args__);
+    console.log(argsView.getCString());
+    let argsBase64 = argsView.getCString();
+    let argsCbor = base64ToUint8Array(argsBase64);
+    //console.log(resultCbor);
+    //console.log(typeof resultCbor);
+    let args = decode(argsCbor);
+    return args;
+}
+
 export class CborLibrary {
     constructor(libPath, methodList) {
         this.libPath = libPath;
@@ -34,6 +45,39 @@ export class CborLibrary {
         let result = decode(resultCbor);
         //console.log(result);
         return result;
+    }
+}
+
+export class CborCallback {
+    constructor(f) {
+        let that = this;
+        console.log(f);
+        that.f = f;
+        that.callback = new Deno.UnsafeCallback(
+            {
+                parameters: ["pointer"],
+                result: "pointer",
+            },
+            (__args__) => {
+                that.__args__ = __args__;
+                that.argsView = new Deno.UnsafePointerView(that.__args__);
+                that.argsBase64 = that.argsView.getCString();
+                that.argsCbor = base64ToUint8Array(that.argsBase64);
+                that.args = decode(that.argsCbor);
+                console.log("(A):" + that.args);
+                console.log("(A2):" + typeof that.args);
+                console.log("(A3):" + typeof f);
+                that.result = that.f(that.args);
+                //that.result = f(that.args);
+                console.log("(C)");
+                that.__result__ = that.__args__;
+                //return that.__result__;
+                return __args__;
+            },
+        );
+    }
+    pointer() {
+        return String(this.callback.pointer);
     }
 }
 

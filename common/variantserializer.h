@@ -71,6 +71,14 @@ protected:
 
 typedef const char *(*ProtoVariantCallback)(const char *__args__);
 
+static inline QVariant VARIANT_RUN_CALLBACK(const QVariant &callback, const QVariant &args)
+{
+    ProtoVariantCallback f = (ProtoVariantCallback)callback.toULongLong();
+    std::string __args__ = VariantSerializer().serializeToStdString(args);
+    std::string __result__ = f(__args__.c_str());
+    return VariantSerializer().deserializeFromStdString(__result__);
+}
+
 #define VARIANT_GET_ARGS() QVariant args = VariantSerializer().deserializeFromStdString(__args__); \
                            QVariant result;
 #define VARIANT_RET_RESULT() static thread_local std::string __result__; \
