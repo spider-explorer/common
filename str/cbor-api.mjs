@@ -68,11 +68,16 @@ export class CborCallback {
                 console.log("(A2):" + typeof that.args);
                 console.log("(A3):" + typeof f);
                 that.result = that.f(that.args);
-                //that.result = f(that.args);
+                console.log("(A4):"+ that.result);
+                that.resultCbor = encode(that.result);
+                that.resultCborBase64 = uint8ArrayToBase64(that.resultCbor);
+                that.resultString = new Uint8Array([
+                    ...new TextEncoder().encode(that.resultCborBase64),
+                    0,
+                ]);
+                that.__result__ = Deno.UnsafePointer.of(that.resultString);
                 console.log("(C)");
-                that.__result__ = that.__args__;
-                //return that.__result__;
-                return __args__;
+                return that.__result__;
             },
         );
     }
