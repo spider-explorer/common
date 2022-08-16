@@ -58,4 +58,4 @@ console.log(mylib.call("cbTest2", [String(callback2.pointer), 8888]));
 
 let cb3 = new CborCallback(function(args) {console.log("(B):"+args);return args*100;});
 console.log(mylib.call("cbTest2", [String(cb3.pointer()), 7777]));
-
+cb3.close();

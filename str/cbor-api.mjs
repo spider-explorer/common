@@ -84,6 +84,9 @@ export class CborCallback {
     pointer() {
         return String(this.callback.pointer);
     }
+    close() {
+        this.callback.close();
+    }
 }
 
 function arrayBufferToBase64(buffer) {
