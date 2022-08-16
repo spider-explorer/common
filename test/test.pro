@@ -45,4 +45,4 @@ include($$(REPO)/common/common/common.pri)
 
 include($$(REPO)/common/qmsgpack/qmsgpack.pri)
 
-LIBS += -lffi
+LIBS += -lffi -lquadmath
