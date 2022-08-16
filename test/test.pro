@@ -41,8 +41,8 @@ contains(QMAKE_QMAKE, .*static.*) {
 
 include($$(REPO)/common/include/include.pri)
 include($$(REPO)/common/common/common.pri)
-#include($$(REPO)/common//common/boost/boost.pri)
+include($$(REPO)/common/boost/boost.pri)
 
 include($$(REPO)/common/qmsgpack/qmsgpack.pri)
 
-LIBS += -lffi -lquadmath
+LIBS += -lffi -lquadmath -lgmpxx -lgmp
