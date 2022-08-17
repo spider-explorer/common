@@ -2,12 +2,13 @@
 #include "utf8LogHandler.h"
 #include "debug_line.h"
 #include <iostream>
+#include <cmath>
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-#define MAX_SAFE_INTEGER 9007199254740991
-#define MIN_SAFE_INTEGER -9007199254740991
+#define MAX_SAFE_INTEGER 9007199254740991LL
+#define MIN_SAFE_INTEGER -9007199254740991LL
 
 static inline nlohmann::json variant_to_jcon(const QVariant &x, bool encode_double = false)
 {
@@ -105,7 +106,7 @@ static inline nlohmann::json variant_to_jcon(const QVariant &x, bool encode_doub
         QDateTime dt = x.toDateTime();
         result = nlohmann::json::object();
         result["!"] = "datetime";
-        result["?"] = dt.toMSecsSinceEpoch();
+        result["?"] = variant_to_jcon(dt.toMSecsSinceEpoch());
     }
     else
     {
@@ -242,17 +243,79 @@ static inline QVariant jcon_to_variant(const nlohmann::json &x)
     return type;
 }
 
+void investigate(double n)
+{
+    /* float型のデータサイズは32ビットなので、32ビット整数型（ int ）とコンビを組みます */
+    union { double f; unsigned long long i; } a;
+    int i;
+    a.f = n;
+
+    printf( "%f ( %016llX )\n", a.f, a.i );
+
+    /* ビットの列を表示します */
+    for( i = 63; i >= 0; i-- ){
+        printf( "%d", ( a.i >> i ) & 1 );
+    }
+    printf( "\n" );
+
+    /* 指数部（ 1ビット ）、指数部（ 8ビット ）、仮数部（ 23ビット ）を取り出します */
+    printf( "符号部 : %llu\n", ( a.i >> 63 ) & 1 );
+    printf( "指数部(1) : %llu\n", ( a.i >> 52 ) & 0x7FF );
+    int exponent = ((int)(( a.i >> 52 ) & 0x7FF)) - (pow(2, 10)-1);
+    printf( "指数部(2) : %d\n", exponent );
+    printf( "仮数部 : %llu\n", a.i & 0xFFFFFFFFFFFFF );
+}
+
+#if 0x1
+union serial {
+    double all;
+    struct {
+        unsigned long long mantissa : 52; // 仮数部
+        unsigned long long exponent : 11; // 指数部
+        unsigned long long sign : 1; // 符号
+    } __attribute__((packed)) part;
+} __attribute__((packed)) s;
+#endif
+
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
     qInstallMessageHandler(utf8LogHandler);
     qdebug_line1("Hello World!");
 
-    QVariant var(QDateTime::currentDateTime());
+    ::SetConsoleOutputCP(65001);
+
+    //union serial __attribute__((packed)) s;
+    qDebug() << sizeof(union serial);
+    qDebug() << sizeof(s);
+    //s.all = 9007199254740991;
+    s.all = 1.5;
+    int sign = s.part.sign ? -1 : 1;
+    int exponent = s.part.exponent - (pow(2, 10)-1) - 52;
+    unsigned long long mantissa = s.part.mantissa + (1ULL<<52);
+    qDebug() << sign << exponent << mantissa;
+    std::cout << std::fixed << (mantissa * pow(2, exponent) * sign) << std::endl << std::flush;
+
+    investigate(s.all);
+
+    return 0;
+
     json j;
+
+    QDateTime dt;
+    qlonglong epoch = MAX_SAFE_INTEGER + 10;
+    qDebug() << "(A)" << epoch;
+    dt.setMSecsSinceEpoch(epoch);
+    j = variant_to_jcon(dt);
+    std::cerr << "(A2) " << j << std::endl << std::flush;
+    qDebug() << "(B)" << jcon_to_variant(j);
+
+    QVariant var(QDateTime::currentDateTime());
     j = variant_to_jcon(var);
-    std::cerr << j << std::endl << std::flush;
-    qDebug() << jcon_to_variant(j);
+    std::cerr << "(C) " << j << std::endl << std::flush;
+    qDebug() << "(D)" << jcon_to_variant(j);
+
+
     j = variant_to_jcon(QByteArray("abc"));
     qDebug() << jcon_to_variant(j);
     std::cerr << j << std::endl << std::flush;
