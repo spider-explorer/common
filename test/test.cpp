@@ -145,6 +145,12 @@ static inline QVariant jcon_to_variant(const nlohmann::json &x)
             {
                 return QByteArray::fromBase64(result["?"].toByteArray());
             }
+            else if (result["!"].toString()=="datetime")
+            {
+                QDateTime dt;
+                dt.setMSecsSinceEpoch(result["?"].toLongLong());
+                return dt;
+            }
         }
         return result;
     }
@@ -231,6 +237,7 @@ int main(int argc, char *argv[])
     json j;
     j = variant_to_jcon(var);
     std::cerr << j << std::endl << std::flush;
+    qDebug() << jcon_to_variant(j);
     j = variant_to_jcon(QByteArray("abc"));
     qDebug() << jcon_to_variant(j);
     std::cerr << j << std::endl << std::flush;
