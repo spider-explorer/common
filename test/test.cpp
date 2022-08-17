@@ -289,12 +289,13 @@ int main(int argc, char *argv[])
     qDebug() << sizeof(union serial);
     qDebug() << sizeof(s);
     //s.all = 9007199254740991;
-    s.all = 1.5;
+    s.all = 1.51234;
     int sign = s.part.sign ? -1 : 1;
     int exponent = s.part.exponent - (pow(2, 10)-1) - 52;
     unsigned long long mantissa = s.part.mantissa + (1ULL<<52);
     qDebug() << sign << exponent << mantissa;
     std::cout << std::fixed << (mantissa * pow(2, exponent) * sign) << std::endl << std::flush;
+    qDebug() << (s.all == (mantissa * pow(2, exponent) * sign));
 
     investigate(s.all);
 
