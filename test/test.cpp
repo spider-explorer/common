@@ -23,6 +23,13 @@ static inline nlohmann::json variant_to_jcon(const QVariant &x)
         {
             result[key.toStdString()] = variant_to_jcon(map[key]);
         }
+        if (result.contains("!"))
+        {
+            nlohmann::json parent;
+            parent["!"] = "dictionary";
+            parent["?"] = result;
+            result = parent;
+        }
     }
     else if (typeName == "QVariantList")
     {
@@ -33,15 +40,18 @@ static inline nlohmann::json variant_to_jcon(const QVariant &x)
             result[i] = variant_to_jcon(list[i]);
         }
     }
-    else if (typeName == "double")
+    else if (typeName == "float"||
+             typeName == "double")
     {
         result = x.toDouble();
     }
-    else if (typeName == "qlonglong")
+    else if (typeName == "int" ||
+             typeName == "qlonglong")
     {
         result = x.toLongLong();
     }
-    else if (typeName == "qulonglong")
+    else if (typeName == "uint" ||
+             typeName == "qulonglong")
     {
         result = x.toULongLong();
     }
@@ -51,7 +61,7 @@ static inline nlohmann::json variant_to_jcon(const QVariant &x)
     }
     else if (typeName == "QString")
     {
-        result = x.toString().toStdString();
+        result = x.toString().toUtf8().toStdString();
     }
     else if (typeName == "QByteArray")
     {
@@ -80,35 +90,32 @@ int main(int argc, char *argv[])
     qInstallMessageHandler(utf8LogHandler);
     qdebug_line1("Hello World!");
 
-    //json j;
-    //j["pi"] = 3.141;
-    //j["happy"] = true;
-    //j["name"] = "Niels";
-    //j["nothing"] = nullptr;
-    //j["answer"]["everything"] = 42;  // 存在しないキーを指定するとobjectが構築される
-    //j["list"] = { 1, 0, 2 };         // [1,0,2]
-    //j["object"] = { {"currency", "USD"}, {"value", 42.99} };  // {"currentcy": "USD", "value": 42.99}
     QVariant var(QDateTime::currentDateTime());
     json j;
     j = variant_to_jcon(var);
     std::cerr << j << std::endl << std::flush;
     j = variant_to_jcon(QByteArray("abc"));
     std::cerr << j << std::endl << std::flush;
+    j = variant_to_jcon((float)1.23);
+    std::cerr << j << std::endl << std::flush;
+    j = variant_to_jcon((short)-123);
+    std::cerr << j << std::endl << std::flush;
+    j = variant_to_jcon((int)-124);
+    std::cerr << j << std::endl << std::flush;
+    j = variant_to_jcon((qint8)-125);
+    std::cerr << j << std::endl << std::flush;
+    j = variant_to_jcon((qint16)-126);
+    std::cerr << j << std::endl << std::flush;
+    j = variant_to_jcon((qint64)-127);
+    std::cerr << j << std::endl << std::flush;
+    j = variant_to_jcon((unsigned int)11);
+    std::cerr << j << std::endl << std::flush;
+    j = variant_to_jcon(QVariantMap {{"a", 123},{"b", 456}});
+    std::cerr << j << std::endl << std::flush;
+    j = variant_to_jcon(QVariantMap {{"!", 123},{"b", 456}});
+    std::cerr << j << std::endl << std::flush;
 
-#if 0x0
-    //std::cout << j << std::endl;
-    //std::vector<std::uint8_t> cbor = json::to_cbor(j);
-    std::string s(cbor.begin(), cbor.end());
-    QByteArray bytes(&s[0], s.size());
-    qDebug() << QCborValue::fromCbor(bytes).toVariant();
-    QVariant var(QDateTime::currentDateTime());
-    bytes = QCborValue::fromVariant(var).toCbor();
-    s = bytes.toStdString();
-    std::vector<std::uint8_t> cbor2(s.begin(), s.end());
-    //json j2 = json::from_cbor(cbor2);
-    //std::cerr << j2 << std::endl << std::flush;
-    qDebug() << var;
-#endif
+    return 0;
 }
 
 
