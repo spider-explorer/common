@@ -9,7 +9,7 @@ using json = nlohmann::json;
 #define MAX_SAFE_INTEGER 9007199254740991
 #define MIN_SAFE_INTEGER -9007199254740991
 
-static inline nlohmann::json variant_to_jcon(const QVariant &x)
+static inline nlohmann::json variant_to_jcon(const QVariant &x, bool encode_double = false)
 {
     QString typeName = x.typeName();
     nlohmann::json result = typeName.toStdString();
@@ -24,11 +24,11 @@ static inline nlohmann::json variant_to_jcon(const QVariant &x)
         QStringList keys = map.keys();
         foreach(QString key, keys)
         {
-            result[key.toStdString()] = variant_to_jcon(map[key]);
+            result[key.toStdString()] = variant_to_jcon(map[key], encode_double);
         }
         if (result.contains("!"))
         {
-            nlohmann::json parent;
+            nlohmann::json parent = nlohmann::json::object();
             parent["!"] = "dictionary";
             parent["?"] = result;
             result = parent;
@@ -40,13 +40,20 @@ static inline nlohmann::json variant_to_jcon(const QVariant &x)
         QVariantList list = x.toList();
         for(int i=0; i<list.size(); i++)
         {
-            result[i] = variant_to_jcon(list[i]);
+            result[i] = variant_to_jcon(list[i], encode_double);
         }
     }
     else if (typeName == "float"||
              typeName == "double")
     {
-        result = x.toDouble();
+        double value = x.toDouble();
+        result = value;
+        if (encode_double)
+        {
+            result = nlohmann::json::object();
+            result["!"] = "double";
+            result["?"] = QByteArray((char *)&value, 8).toBase64().toStdString();
+        }
     }
     else if (typeName == "int" ||
              typeName == "qlonglong")
@@ -150,6 +157,14 @@ static inline QVariant jcon_to_variant(const nlohmann::json &x)
                 QDateTime dt;
                 dt.setMSecsSinceEpoch(result["?"].toLongLong());
                 return dt;
+            }
+            else if (result["!"].toString()=="double")
+            {
+                QByteArray bytes = QByteArray::fromBase64(result["?"].toByteArray());
+                double n = 0.0;
+                if (bytes.size()!=8) return QVariant::fromValue(n);
+                n = *((double *)bytes.constData());
+                return QVariant::fromValue(n);
             }
         }
         return result;
@@ -260,6 +275,9 @@ int main(int argc, char *argv[])
     j = variant_to_jcon(QVariantMap {{"a", 123},{"b", 456}});
     std::cerr << j << std::endl << std::flush;
     j = variant_to_jcon(QVariantMap {{"!", 123},{"b", 456}});
+    std::cerr << j << std::endl << std::flush;
+    qDebug() << jcon_to_variant(j);
+    j = variant_to_jcon(3.14, true);
     std::cerr << j << std::endl << std::flush;
     qDebug() << jcon_to_variant(j);
 
