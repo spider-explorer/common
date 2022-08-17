@@ -1,0 +1,10 @@
+﻿<RCC>
+    <qresource prefix="/">
+        <file>esprima.js</file>
+        <file>babel-parser.mjs</file>
+        <file>typescript-parser.mjs</file>
+        <file>miniMAL.mjs</file>
+        <file>oml2ast.mjs</file>
+        <file>omljs.mjs</file>
+    </qresource>
+</RCC>
