@@ -6,6 +6,9 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
+#define MAX_SAFE_INTEGER 9007199254740991
+#define MIN_SAFE_INTEGER -9007199254740991
+
 static inline nlohmann::json variant_to_jcon(const QVariant &x)
 {
     QString typeName = x.typeName();
@@ -48,12 +51,32 @@ static inline nlohmann::json variant_to_jcon(const QVariant &x)
     else if (typeName == "int" ||
              typeName == "qlonglong")
     {
-        result = x.toLongLong();
+        qlonglong value = x.toLongLong();
+        result = value;
+        if (value > MAX_SAFE_INTEGER)
+        {
+            result = nlohmann::json::object();
+            result["!"] = "bigint";
+            result["?"] = x.toString().toStdString();
+        }
+        else if (value < MIN_SAFE_INTEGER)
+        {
+            result = nlohmann::json::object();
+            result["!"] = "bigint";
+            result["?"] = x.toString().toStdString();
+        }
     }
     else if (typeName == "uint" ||
              typeName == "qulonglong")
     {
-        result = x.toULongLong();
+        qulonglong value = x.toLongLong();
+        result = value;
+        if (value > MAX_SAFE_INTEGER)
+        {
+            result = nlohmann::json::object();
+            result["!"] = "bigint";
+            result["?"] = x.toString().toStdString();
+        }
     }
     else if (typeName == "bool")
     {
@@ -84,6 +107,120 @@ static inline nlohmann::json variant_to_jcon(const QVariant &x)
     return result;
 }
 
+static inline QVariant jcon_to_variant(const nlohmann::json &x)
+{
+    QString type;
+    switch (x.type())
+    {
+    case nlohmann::json::value_t::null: ///< null value
+    {
+        type = "null";
+        return QVariant();
+    }
+        break;
+    case nlohmann::json::value_t::object: ///< object (unordered set of name/value pairs)
+    {
+        type = "object";
+        QVariantMap result;
+        for (auto &el : x.items())
+        {
+            result[QString::fromStdString(el.key())] = jcon_to_variant(el.value());
+        }
+        if (result.contains("!"))
+        {
+            if (result["!"].toString()=="dictionary")
+            {
+                return result["?"];
+            }
+            else if (result["!"].toString()=="bigint")
+            {
+                QString n = result["?"].toString();
+                if (n.startsWith("-"))
+                {
+                    return result["?"].toLongLong();
+                }
+                return result["?"].toULongLong();
+            }
+            else if (result["!"].toString()=="bytearray")
+            {
+                return QByteArray::fromBase64(result["?"].toByteArray());
+            }
+        }
+        return result;
+    }
+        break;
+    case nlohmann::json::value_t::array: ///< array (ordered collection of values)
+    {
+        type = "array";
+        QVariantList result;
+        for (auto &el : x)
+        {
+            result.append(jcon_to_variant(el));
+        }
+        return result;
+    }
+        break;
+    case nlohmann::json::value_t::string: ///< string value
+    {
+        type = "string";
+        return QString::fromStdString(x.get<std::string>());
+    }
+        break;
+    case nlohmann::json::value_t::boolean: ///< boolean value
+    {
+        type = "boolean";
+        return x.get<bool>();
+    }
+        break;
+    case nlohmann::json::value_t::number_integer: ///< number value (signed integer)
+    {
+        type = "integer";
+        return x.get<std::int64_t>();
+    }
+        break;
+    case nlohmann::json::value_t::number_unsigned: ///< number value (unsigned integer)
+    {
+        type = "unsigned";
+        return x.get<std::uint64_t>();
+    }
+        break;
+    case nlohmann::json::value_t::number_float: ///< number value (floating-point)
+    {
+        type = "float";
+        return x.get<double>();
+    }
+        break;
+    case nlohmann::json::value_t::binary: ///< binary array (ordered collection of bytes)
+    {
+        type = "binary";
+        const nlohmann::json::binary_t &bin = x.get_binary();
+        std::string s(bin.begin(), bin.end());
+        QByteArray bytes = QByteArray::fromStdString(s);
+        if (bin.subtype() == 1)
+        {
+            QVariant v;
+            QDataStream in(&bytes, QIODevice::ReadOnly);
+            in.setVersion(QDataStream::Qt_5_1);
+            in >> v;
+            return v;
+        }
+        return bytes;
+    }
+        break;
+    case nlohmann::json::value_t::discarded: ///< discarded by the parser callback function
+    {
+        type = "discarded";
+    }
+        break;
+    default:
+    {
+        type = "?";
+    }
+        break;
+    }
+    return type;
+}
+
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
@@ -95,6 +232,7 @@ int main(int argc, char *argv[])
     j = variant_to_jcon(var);
     std::cerr << j << std::endl << std::flush;
     j = variant_to_jcon(QByteArray("abc"));
+    qDebug() << jcon_to_variant(j);
     std::cerr << j << std::endl << std::flush;
     j = variant_to_jcon((float)1.23);
     std::cerr << j << std::endl << std::flush;
@@ -108,12 +246,15 @@ int main(int argc, char *argv[])
     std::cerr << j << std::endl << std::flush;
     j = variant_to_jcon((qint64)-127);
     std::cerr << j << std::endl << std::flush;
-    j = variant_to_jcon((unsigned int)11);
+    j = variant_to_jcon(9007199254740992ULL);
+    std::cerr << j << std::endl << std::flush;
+    j = variant_to_jcon(-9007199254740992LL);
     std::cerr << j << std::endl << std::flush;
     j = variant_to_jcon(QVariantMap {{"a", 123},{"b", 456}});
     std::cerr << j << std::endl << std::flush;
     j = variant_to_jcon(QVariantMap {{"!", 123},{"b", 456}});
     std::cerr << j << std::endl << std::flush;
+    qDebug() << jcon_to_variant(j);
 
     return 0;
 }
