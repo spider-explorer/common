@@ -9,7 +9,7 @@ CONFIG += force_debug_info
 #CONFIG += staticlib
 #CONFIG += dll
 
-DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000
+#DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000
 DEFINES += _WINSOCKAPI_
 DEFINES += DEBUG_LINE
 
@@ -44,5 +44,9 @@ include($$(REPO)/common/common/common.pri)
 include($$(REPO)/common/boost/boost.pri)
 
 include($$(REPO)/common/qmsgpack/qmsgpack.pri)
+
+include($$(REPO)/common/cborg.pri)
+include($$(REPO)/common/bobl.pri)
+include($$(REPO)/common/qcbor.pri)
 
 LIBS += -lffi -lquadmath -lgmpxx -lgmp

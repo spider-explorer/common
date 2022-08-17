@@ -1,4 +1,269 @@
 ﻿#include <QtCore>
+#include "utf8LogHandler.h"
+#include "debug_line.h"
+#include <iostream>
+
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
+static inline nlohmann::json variant_to_jcon(const QVariant &x)
+{
+    QString typeName = x.typeName();
+    nlohmann::json result = typeName.toStdString();
+    if (!x.isValid() || x.isNull())
+    {
+        result = nullptr;
+    }
+    else if (typeName == "QVariantMap")
+    {
+        result = nlohmann::json::object();
+        QVariantMap map = x.toMap();
+        QStringList keys = map.keys();
+        foreach(QString key, keys)
+        {
+            result[key.toStdString()] = variant_to_jcon(map[key]);
+        }
+    }
+    else if (typeName == "QVariantList")
+    {
+        result = nlohmann::json::array();
+        QVariantList list = x.toList();
+        for(int i=0; i<list.size(); i++)
+        {
+            result[i] = variant_to_jcon(list[i]);
+        }
+    }
+    else if (typeName == "double")
+    {
+        result = x.toDouble();
+    }
+    else if (typeName == "qlonglong")
+    {
+        result = x.toLongLong();
+    }
+    else if (typeName == "qulonglong")
+    {
+        result = x.toULongLong();
+    }
+    else if (typeName == "bool")
+    {
+        result = x.toBool();
+    }
+    else if (typeName == "QString")
+    {
+        result = x.toString().toStdString();
+    }
+    else if (typeName == "QByteArray")
+    {
+        std::string s = x.toByteArray().toBase64().toStdString();
+        result = nlohmann::json::object();
+        result["!"] = "bytearray";
+        result["?"] = s;
+    }
+    else if (typeName == "QDateTime")
+    {
+        QDateTime dt = x.toDateTime();
+        result = nlohmann::json::object();
+        result["!"] = "datetime";
+        result["?"] = dt.toMSecsSinceEpoch();
+    }
+    else
+    {
+        return typeName.toStdString();
+    }
+    return result;
+}
+
+int main(int argc, char *argv[])
+{
+    QCoreApplication app(argc, argv);
+    qInstallMessageHandler(utf8LogHandler);
+    qdebug_line1("Hello World!");
+
+    //json j;
+    //j["pi"] = 3.141;
+    //j["happy"] = true;
+    //j["name"] = "Niels";
+    //j["nothing"] = nullptr;
+    //j["answer"]["everything"] = 42;  // 存在しないキーを指定するとobjectが構築される
+    //j["list"] = { 1, 0, 2 };         // [1,0,2]
+    //j["object"] = { {"currency", "USD"}, {"value", 42.99} };  // {"currentcy": "USD", "value": 42.99}
+    QVariant var(QDateTime::currentDateTime());
+    json j;
+    j = variant_to_jcon(var);
+    std::cerr << j << std::endl << std::flush;
+    j = variant_to_jcon(QByteArray("abc"));
+    std::cerr << j << std::endl << std::flush;
+
+#if 0x0
+    //std::cout << j << std::endl;
+    //std::vector<std::uint8_t> cbor = json::to_cbor(j);
+    std::string s(cbor.begin(), cbor.end());
+    QByteArray bytes(&s[0], s.size());
+    qDebug() << QCborValue::fromCbor(bytes).toVariant();
+    QVariant var(QDateTime::currentDateTime());
+    bytes = QCborValue::fromVariant(var).toCbor();
+    s = bytes.toStdString();
+    std::vector<std::uint8_t> cbor2(s.begin(), s.end());
+    //json j2 = json::from_cbor(cbor2);
+    //std::cerr << j2 << std::endl << std::flush;
+    qDebug() << var;
+#endif
+}
+
+
+
+
+#if 0x0
+#include <QtCore>
+#include "utf8LogHandler.h"
+#include "debug_line.h"
+#include <iostream>
+
+//#include <nlohmann/json.hpp>
+//using json = nlohmann::json;
+
+#include "qcbor/qcbor_encode.h"
+#include "qcbor/qcbor_decode.h"
+
+int main(int argc, char *argv[])
+{
+    QCoreApplication app(argc, argv);
+    qInstallMessageHandler(utf8LogHandler);
+    qdebug_line1("Hello World!");
+
+    QCBOREncodeContext EC;
+    static uint8_t spBigBuf[2200];
+    QCBOREncode_Init(&EC, UsefulBuf_FROM_BYTE_ARRAY(spBigBuf));
+    //UsefulBuf_MAKE_STACK_UB(MemoryForEncoded2, 20);
+    //QCBOREncode_Init(&EC, MemoryForEncoded2);
+
+    QCBOREncode_OpenMap(&EC);
+    QCBOREncode_AddBoolToMapN(&EC, 66, true);
+    QCBOREncode_AddBoolToMap(&EC, "7777", false);
+    QCBOREncode_AddDateEpochToMap(&EC, "8888", 1);
+    QCBOREncode_CloseMap(&EC);
+    UsefulBufC Encoded;
+    if(QCBOREncode_Finish(&EC, &Encoded)) {
+       return -1;
+    }
+
+    std::cerr << Encoded.len << std::endl;
+    QByteArray bytes((char *)Encoded.ptr, Encoded.len);
+    qDebug() << QCborValue::fromCbor(bytes).toVariant();
+
+    // Decode it and see that is right
+    QCBORDecodeContext DC;
+    QCBORItem Item;
+    QCBORDecode_Init(&DC, Encoded, QCBOR_DECODE_MODE_NORMAL);
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_MAP) {
+       return -2;
+    }
+    QCBORDecode_GetNext(&DC, &Item);
+    if(Item.uDataType != QCBOR_TYPE_TRUE) {
+       return -3;
+    }
+    if(QCBORDecode_Finish(&DC)) {
+       return -4;
+    }
+
+    //json j;
+    //j["pi"] = 3.141;
+    //j["happy"] = true;
+    //j["name"] = "Niels";
+    //j["nothing"] = nullptr;
+    //j["answer"]["everything"] = 42;  // 存在しないキーを指定するとobjectが構築される
+    //j["list"] = { 1, 0, 2 };         // [1,0,2]
+    //j["object"] = { {"currency", "USD"}, {"value", 42.99} };  // {"currentcy": "USD", "value": 42.99}
+
+#if 0x0
+    //std::cout << j << std::endl;
+    //std::vector<std::uint8_t> cbor = json::to_cbor(j);
+    std::string s(cbor.begin(), cbor.end());
+    QByteArray bytes(&s[0], s.size());
+    qDebug() << QCborValue::fromCbor(bytes).toVariant();
+    QVariant var(QDateTime::currentDateTime());
+    bytes = QCborValue::fromVariant(var).toCbor();
+    s = bytes.toStdString();
+    std::vector<std::uint8_t> cbor2(s.begin(), s.end());
+    //json j2 = json::from_cbor(cbor2);
+    //std::cerr << j2 << std::endl << std::flush;
+    qDebug() << var;
+#endif
+}
+#endif
+
+#if 0x0
+#include "bobl/cbor/decode.hpp"
+#include <iostream>
+
+int main() {
+
+  std::uint8_t data[] = {0xa4, 0x67, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64,
+                         0xf5, 0x62, 0x69, 0x64, 0x18, 0x64, 0x64, 0x6e, 0x61,
+                         0x6d, 0x65, 0x68, 0x74, 0x68, 0x65, 0x20, 0x6e, 0x61,
+                         0x6d, 0x65, 0x63, 0x65, 0x6e, 0x6d, 0x2};
+
+  uint8_t const *begin = data;
+  uint8_t const *end = begin + sizeof(data) / sizeof(data[0]);
+  auto res =  bobl::cbor::decode<bool, int, std::string, int>(begin, end);
+  std::cout << std::get<0>(res) << std::endl;
+  std::cout << std::get<1>(res) << std::endl;
+  std::cout << std::get<2>(res) << std::endl;
+  std::cout << std::get<3>(res) << std::endl;
+  return 0;
+}
+#endif
+
+#if 0x0
+#include "cborg/Cbor.h"
+
+#include <stdio.h>
+#include <string>
+
+int main(void)
+{
+    uint8_t buffer[200];
+    char str[] = "hello";
+    Cbore encoder(buffer, sizeof(buffer));
+
+    encoder.tag(1234)
+      .array()
+        .item("Attention, the Universe!")
+        .item("Hello World!")
+        .map()
+          .key("key1").value("value1")
+          .key("key2")
+            .array()
+              .item("one")
+              .item("two")
+              .item("three")
+            .end()
+          .key(3).value("value3")
+          .key("key4")
+            .map(4)
+              .key("key5").value(Cbor::TypeNull)
+              .key(6).value(Cbor::TypeFalse)
+              .key(7)
+                .array(3)
+                  .item(1)
+                  .item(str, sizeof(str) - 1)
+                  .item(3)
+              .key("something").value(str, sizeof(str) - 1)
+              .key(str, sizeof(str) - 1).value(str, sizeof(str) - 1)
+        .end()
+      .item(-10)
+      .item(10)
+      .item(Cbor::TypeTrue)
+    .end();
+
+    encoder.print();
+}
+#endif
+
+#if 0x0
+#include <QtCore>
 #include <iostream>
 #include <sstream>
 using namespace std;
@@ -95,6 +360,7 @@ int main() {
     Real d("1234567890123456789012345678901234");
     cout << fixed << setprecision(5) << d << endl;
 }
+#endif
 
 #if 0x0
 #include <iostream>
