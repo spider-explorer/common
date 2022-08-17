@@ -283,13 +283,17 @@ int main(int argc, char *argv[])
     qInstallMessageHandler(utf8LogHandler);
     qdebug_line1("Hello World!");
 
+    QVariant v0;
+    qDebug() << v0.isNull();
+
     ::SetConsoleOutputCP(65001);
 
     //union serial __attribute__((packed)) s;
     qDebug() << sizeof(union serial);
     qDebug() << sizeof(s);
     //s.all = 9007199254740991;
-    s.all = 1.51234;
+    //s.all = 1.51234;
+    s.all = 0;
     int sign = s.part.sign ? -1 : 1;
     int exponent = s.part.exponent - (pow(2, 10)-1) - 52;
     unsigned long long mantissa = s.part.mantissa + (1ULL<<52);
