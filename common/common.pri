@@ -1,5 +1,7 @@
 QT += core gui widgets network
 
+include($$(REPO)/common/include/include.pri)
+
 INCLUDEPATH += $$PWD
 
 msvc:INCLUDEPATH += $$(HOME)/conan/binaries/include
