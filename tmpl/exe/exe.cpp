@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     qInstallMessageHandler(utf8LogHandler);
-    qdebug_line1("Hello World!2");
+    qdebug_line1("Hello World!");
     qdebug_line1(MyLib::add2(11, 22));
     return 0; // return app.exec();
 }
