@@ -32,7 +32,12 @@ double fib_dbl(double n)
 int test_fib_dbl(double n = 8)
 {
     FileLogger fileLogger(stdout);
-    fileLogger.addFlags(FormatFlags::kMachineCode /*| FormatFlags::kFlagAnnotations*/);
+    fileLogger.addFlags(FormatFlags::kMachineCode
+                        //|
+                        //FormatFlags::kExplainImms
+                        );
+    /*| FormatFlags::kFlagAnnotations*/
+    //fileLogger.setIndentation(FormatIndentationGroup::kLabel, 15);
 
     JitRuntime rt;
     CodeHolder code;

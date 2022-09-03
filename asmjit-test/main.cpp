@@ -164,6 +164,10 @@ ast;
     qDebug().noquote() << jsonDoc.toJson(QJsonDocument::Indented);
 
     //gc_test(argc, argv);
+    debug_line();
+    test_fib_dbl(25);
+    fflush(stdout);
+    debug_line();
 
     return 0;
 }
